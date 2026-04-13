@@ -58,6 +58,7 @@ class InspectionItem(BaseModel):
     observation: Optional[str] = ""
     detected_values: Optional[str] = ""
     signature_data: Optional[str] = "" # Base64 signature if LEG
+    image_data: Optional[str] = ""     # Base64 image for the report
 
 class ReportRequest(BaseModel):
     trip_id: str
@@ -66,6 +67,7 @@ class ReportRequest(BaseModel):
     items: List[InspectionItem]
     score: int
     status: str
+    email: str
 
 # --- Storage (Simulated) ---
 REPORTS_DIR = "reports"
@@ -233,6 +235,37 @@ async def generate_report(request: ReportRequest):
         pdf.set_text_color(71, 85, 105)
         val_text = item.detected_values if item.detected_values else "Evidencia OK"
         pdf.cell(60, 10, f" {val_text[:35]}", border='B', fill=True, ln=True)
+
+    # --- IMAGE ANNEX (New) ---
+    pdf.add_page()
+    pdf.set_font("Helvetica", 'B', 16)
+    pdf.cell(0, 15, txt="ANEXO: REGISTRO FOTOGRÁFICO", ln=True)
+    
+    img_count = 0
+    for item in request.items:
+        if item.image_data and len(item.image_data) > 100:
+            try:
+                # Save base64 to temp file to embed in PDF
+                import base64
+                header, data = item.image_data.split(',', 1) if ',' in item.image_data else ('', item.image_data)
+                img_bytes = base64.b64decode(data)
+                temp_img_path = f"temp_{item.id}_{uuid.uuid4().hex}.jpg"
+                with open(temp_img_path, "wb") as f:
+                    f.write(img_bytes)
+                
+                # Layout: 2 images per page
+                if img_count > 0 and img_count % 2 == 0:
+                    pdf.add_page()
+                
+                pdf.set_font("Helvetica", 'B', 10)
+                pdf.cell(0, 10, txt=f"ÍTEM: {item.name}", ln=True)
+                pdf.image(temp_img_path, w=100)
+                pdf.ln(5)
+                
+                os.remove(temp_img_path) # Clean up
+                img_count += 1
+            except Exception as e:
+                print(f"Error embedding image for {item.id}: {str(e)}")
 
     # --- ANEXO CRÍTICO A: WAIVERS ---
     leg_items = [i for i in request.items if i.method == 'LEG']

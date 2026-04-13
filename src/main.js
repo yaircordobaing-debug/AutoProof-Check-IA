@@ -332,6 +332,9 @@ import { inspectionData } from './utils/data.js';
         let results = {}; 
         let currentImageBase64 = null;
         let currentItemId = null;
+        let currentStepIndex = 0;
+        const seqLabels = ["Delantera Izquierda", "Delantera Derecha", "Trasera Izquierda", "Trasera Derecha"];
+        let seqResults = []; 
 
         function renderChecklist() {
             const container = document.getElementById('checklistContainer');
@@ -434,11 +437,23 @@ import { inspectionData } from './utils/data.js';
             btnAnalyze.classList.add('hidden');
             btnBypass.classList.remove('hidden');
 
-            if (itemData.type === 'IA-V' || itemData.type === 'EVD' || itemData.type === 'VAL') {
-                imgContainer.classList.remove('hidden');
-                btnAnalyze.classList.remove('hidden');
+            if (itemData.type === 'VAL-SEQ' || itemData.type === 'IA-V-SEQ') {
+                imgContainer.style.display = 'block';
+                if (itemData.type === 'VAL-SEQ') {
+                    numContainer.style.display = 'block';
+                    document.getElementById('valUnit').innerText = itemData.unit;
+                }
+                btnAnalyze.style.display = 'flex';
+                
+                // Set initial step title
+                currentStepIndex = 0;
+                seqResults = [];
+                document.getElementById('modalTitle').innerText = `${itemData.name} - ${seqLabels[0]} (1/4)`;
+            } else if (itemData.type === 'IA-V' || itemData.type === 'EVD' || itemData.type === 'VAL') {
+                imgContainer.style.display = 'block';
+                btnAnalyze.style.display = 'flex';
                 if (itemData.type === 'VAL') {
-                    numContainer.classList.remove('hidden');
+                    numContainer.style.display = 'block';
                     document.getElementById('valUnit').innerText = itemData.unit;
                 }
             } else if (itemData.type === 'IA-A') {
@@ -447,8 +462,16 @@ import { inspectionData } from './utils/data.js';
                 btnAnalyze.innerHTML = '<i class="fa-solid fa-microchip"></i> Analizar Audio';
             } else if (itemData.type === 'USR') {
                 // USR type: Manual Yes/No validation
-                btnAnalyze.classList.add('hidden');
+                imgContainer.style.display = 'none'; // Force hide
+                numContainer.style.display = 'none';
+                audioContainer.style.display = 'none';
+                btnAnalyze.style.display = 'none';
+                btnBypass.style.display = 'flex';
+                btnBypass.classList.remove('hidden');
+                
                 document.getElementById('btnSaveResult').classList.remove('hidden');
+                document.getElementById('btnSaveResult').style.display = 'flex'; // Ensure it shows
+                document.getElementById('btnSaveResult').className = 'w-full bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2 mb-2';
                 document.getElementById('btnSaveResult').innerHTML = '<i class="fa-solid fa-circle-check"></i> Sí, Cumple';
                 document.getElementById('btnSaveResult').onclick = function() { saveResultWithStatus('Cumple'); };
                 
@@ -460,6 +483,7 @@ import { inspectionData } from './utils/data.js';
                     btnNoCumple.className = 'w-full bg-red-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-red-700 transition-all mt-2 flex items-center justify-center gap-2';
                     document.getElementById('btnSaveResult').parentNode.appendChild(btnNoCumple);
                 }
+                btnNoCumple.style.display = 'flex'; // Ensure it shows
                 btnNoCumple.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No Cumple';
                 btnNoCumple.classList.remove('hidden');
                 btnNoCumple.onclick = function() { saveResultWithStatus('No Cumple'); };
@@ -495,18 +519,28 @@ import { inspectionData } from './utils/data.js';
             if (btn) {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-microchip"></i> Analizar con IA';
+                btn.classList.add('hidden'); // Hide by default
             }
+
+            const btnBypass = document.getElementById('btnBypassIA');
+            if (btnBypass) btnBypass.classList.add('hidden'); // Hide by default
             
             if (document.getElementById('btnSaveResult')) {
                 document.getElementById('btnSaveResult').classList.add('hidden');
                 document.getElementById('btnSaveResult').innerHTML = '<i class="fa-solid fa-check"></i> Confirmar y Guardar';
-                document.getElementById('btnSaveResult').onclick = saveResult; // Reset onclick
+                document.getElementById('btnSaveResult').onclick = saveResult; 
             }
             // Hide the No Cumple button if it exists
             const btnNoCumple = document.getElementById('btnNoCumple');
             if (btnNoCumple) btnNoCumple.classList.add('hidden');
             if (document.getElementById('analysisState')) document.getElementById('analysisState').classList.add('hidden');
             if (document.getElementById('analysisResult')) document.getElementById('analysisResult').classList.add('hidden');
+            
+            // Explicitly hide containers initially
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+            document.getElementById('numericalInputContainer').style.display = 'none';
+            document.getElementById('audioInputContainer').style.display = 'none';
+            document.getElementById('btnNoCumple') ? document.getElementById('btnNoCumple').style.display = 'none' : null;
         }
 
         function handleImageSelect(e) {
@@ -538,9 +572,9 @@ import { inspectionData } from './utils/data.js';
             inspectionData.forEach(cat => cat.items.forEach(i => { if(i.id === currentItemId) itemData = i; }));
 
             const btn = document.getElementById('btnAnalyze');
-            if (itemData.type === 'VAL') {
+            if (itemData.type === 'VAL' || itemData.type === 'VAL-SEQ') {
                 btn.disabled = !(currentImageBase64 && document.getElementById('valInput').value);
-            } else if (itemData.type === 'IA-V' || itemData.type === 'EVD') {
+            } else if (itemData.type === 'IA-V' || itemData.type === 'EVD' || itemData.type === 'IA-V-SEQ') {
                 btn.disabled = !currentImageBase64;
             } else if (itemData.type === 'IA-A') {
                 btn.disabled = false; // Always enabled for simulated recording
@@ -636,12 +670,53 @@ import { inspectionData } from './utils/data.js';
                         method: 'USR',
                         observation: 'Validado manualmente por el conductor.'
                     };
+                } else if (itemData.type === 'VAL-SEQ' || itemData.type === 'IA-V-SEQ') {
+                    // Save sequential step
+                    const stepRes = {
+                        tire: seqLabels[currentStepIndex],
+                        value: itemData.type === 'VAL-SEQ' ? (document.getElementById('valInput').value + " " + itemData.unit) : 'Visual OK',
+                        status: 'Validado'
+                    };
+                    seqResults.push(stepRes);
+
+                    if (currentStepIndex < 3) {
+                        currentStepIndex++;
+                        resetModalState(); // Clear for next tire
+                        document.getElementById('modalTitle').innerText = `${itemData.name} - ${seqLabels[currentStepIndex]} (${currentStepIndex + 1}/4)`;
+                        
+                        // Keep the sequence mode active
+                        document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                        if (itemData.type === 'VAL-SEQ') {
+                            document.getElementById('numericalInputContainer').classList.remove('hidden');
+                            document.getElementById('valUnit').innerText = itemData.unit;
+                        }
+                        document.getElementById('btnAnalyze').classList.remove('hidden');
+                        return; // Stop here to prevent closing
+                    } else {
+                        results[currentItemId] = {
+                            status: 'Cumple',
+                            method: itemData.type,
+                            observation: `Validación completa de las 4 llantas.`,
+                            details: seqResults
+                        };
+                    }
                 } else if (currentAIResult) {
                     // IA Result
                     if (itemData.type === 'VAL') {
                         currentAIResult.detected_values = document.getElementById('valInput').value + " " + itemData.unit;
                     }
-                    results[currentItemId] = currentAIResult;
+                    results[currentItemId] = {
+                        ...currentAIResult,
+                        image_data: currentImageBase64 // Store image for the PDF
+                    };
+                } else if (currentImageBase64) {
+                    // Evidential result without specific AI (e.g. EVD)
+                    results[currentItemId] = {
+                        status: 'Completado',
+                        method: itemData.type,
+                        observation: 'Evidencia capturada.',
+                        image_data: currentImageBase64
+                    };
                 }
 
                 renderChecklist();
@@ -755,9 +830,14 @@ import { inspectionData } from './utils/data.js';
         let isSigning = false;
 
         function openLegalWaiver() {
+            // Reset fields for the new component
+            document.getElementById('legalCheckbox').checked = false;
+            document.getElementById('legalComment').value = '';
+            
             document.getElementById('legalModal').classList.remove('hidden');
             document.getElementById('legalModal').classList.add('flex');
             initSignaturePad();
+            clearSignature(); // Ensure pad is clean
         }
 
         function closeLegalModal() {
@@ -818,39 +898,98 @@ import { inspectionData } from './utils/data.js';
         }
 
         async function finishReport() {
-            if (currentFinalReport) {
-                try {
-                    showMessage("Generando reporte legal con firma digital...");
-                    const response = await fetch('/v1/generate-report', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(currentFinalReport)
-                    });
-                    const data = await response.json();
-                    
-                    reportsHistory.unshift({
-                        id: data.report_id,
-                        date: new Date().toLocaleDateString(),
-                        score: currentFinalReport.score,
-                        status: currentFinalReport.status,
-                        url: data.url
-                    });
-                    
-                    showMessage(`✅ Reporte ${data.report_id} generado y firmado.`);
-                } catch (error) {
-                    console.error("Report Error:", error);
-                    showMessage("Error al guardar reporte en servidor.");
+            const completed = Object.keys(results).length;
+            const total = inspectionData.reduce((acc, cat) => acc + cat.items.length, 0);
+            
+            if (completed < total) {
+                if (!confirm(`Solo has completado ${completed} de ${total} ítems. ¿Deseas finalizar el reporte incompleto?`)) {
+                    return;
                 }
             }
 
-            if (pendingTrip) {
-                activeTrip = pendingTrip;
-                pendingTrip = null;
+            document.getElementById('finalModal').classList.remove('hidden');
+            document.getElementById('finalModal').classList.add('flex');
+        }
+
+        async function submitFinalReport() {
+            const email = document.getElementById('driverEmail').value;
+            if (!email || !email.includes('@')) {
+                showMessage("Por favor ingresa un correo electrónico válido.");
+                return;
             }
 
-            results = {}; 
-            renderChecklist();
-            navigate('dashboard');
+            const btn = document.getElementById('btnSubmitFinal');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando PDF...';
+
+            try {
+                // Prepare items for backend
+                const reportItems = Object.keys(results).map(id => {
+                    const res = results[id];
+                    let name = "Componente";
+                    inspectionData.forEach(cat => cat.items.forEach(i => { if(i.id === id) name = i.name; }));
+                    
+                    return {
+                        id: id,
+                        name: name,
+                        status: res.status,
+                        method: res.method || 'IA-V',
+                        observation: res.observation || "",
+                        detected_values: res.detected_values || "",
+                        signature_data: res.signature || "",
+                        image_data: res.image_data || ""
+                    };
+                });
+
+                const payload = {
+                    trip_id: `TRIP-${Date.now()}`,
+                    driver_name: currentUser ? currentUser.name : "Conductor Invitado",
+                    vehicle_plate: "ABC-123",
+                    items: reportItems,
+                    score: Math.round((Object.keys(results).length / inspectionData.reduce((acc, cat) => acc + cat.items.length, 0)) * 100),
+                    status: "Completado",
+                    email: email
+                };
+
+                const response = await fetch(`${API_BASE_URL}/v1/generate-report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                
+                if (data.url) {
+                    showMessage("✅ Reporte generado y enviado al correo.");
+                    // Open PDF in new tab
+                    window.open(`${API_BASE_URL}${data.url}`, '_blank');
+                    
+                    // Update History List on Dashboard
+                    reportsHistory.unshift({
+                        id: data.report_id || payload.trip_id,
+                        date: new Date().toLocaleDateString(),
+                        score: payload.score,
+                        status: payload.status,
+                        url: data.url
+                    });
+
+                    // Reset app
+                    document.getElementById('finalModal').classList.add('hidden');
+                    results = {};
+                    renderChecklist();
+                    renderReportsHistory(); // Refresh history UI
+                    navigate('dashboard');
+                } else {
+                    throw new Error("No se recibió la URL del reporte.");
+                }
+
+            } catch (error) {
+                console.error("Report Error:", error);
+                showMessage("Error al generar el reporte PDF.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generar y Enviar PDF';
+            }
         }
 
     
@@ -875,3 +1014,4 @@ window.closeLegalModal = closeLegalModal;
 window.clearSignature = clearSignature;
 window.confirmLegalValidation = confirmLegalValidation;
 window.finishReport = finishReport;
+window.submitFinalReport = submitFinalReport;
