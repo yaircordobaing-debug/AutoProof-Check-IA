@@ -19,7 +19,8 @@ def test_generate_report_endpoint_working():
             }
         ],
         "score": 100,
-        "status": "APTO"
+        "status": "APTO",
+        "email": "test@example.com"
     }
 
     # As it attempts to write to disk in /reports, the test checks if that doesn't fail
