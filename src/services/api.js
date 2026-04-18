@@ -1,5 +1,5 @@
-// URL del Backend en Render (Cámbiala cuando tengas la de Render)
-export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || ""; 
+// URL del Backend en Render
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || "https://autoproof-check-ia.onrender.com"; 
 
 export async function callGeminiAPI(base64Data, specificPrompt, currentItemId) {
     const base64Response = await fetch(base64Data);

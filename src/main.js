@@ -396,7 +396,15 @@ window.appActions = {
         const res = await submitFinalReport(currentFinalReport, email, reportsHistory);
         if (res) {
             showNotification("Reporte enviado con éxito");
-            window.open(res.url, '_blank');
+            
+            // SEGURO DE URL: Si la URL no empieza con http, le ponemos el dominio del backend
+            let finalUrl = res.url;
+            if (!finalUrl.startsWith('http')) {
+                const { API_BASE_URL } = await import('./services/api.js');
+                finalUrl = `${API_BASE_URL}${finalUrl}`;
+            }
+            
+            window.open(finalUrl, '_blank');
             
             // Si es iniciar viaje (desde la pantalla de reporte)
             if (currentView === 'report') {
