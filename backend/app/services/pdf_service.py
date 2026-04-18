@@ -147,6 +147,6 @@ class PDFService:
             "report_id": request.trip_id,
             "status": "Finalizado",
             "hash": fake_hash,
-            "url": f"/reports/{file_name}",
+            "url": f"{settings.PUBLIC_URL}/reports/{file_name}",
             "path": file_path
         }

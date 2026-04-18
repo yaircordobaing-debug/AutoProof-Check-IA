@@ -8,6 +8,7 @@ load_dotenv(dotenv_path=env_path)
 class Settings:
     PROJECT_TITLE: str = "AutoProof Check IA - Enterprise Backend"
     REPORTS_DIR: str = "reports"
+    PUBLIC_URL: str = os.getenv("PUBLIC_URL", "http://localhost:8080")
     IS_AI_ACTIVE: bool = False
     MODEL = None
 
