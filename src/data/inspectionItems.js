@@ -30,8 +30,8 @@ export const inspectionData = [
         category: "3. Diagnóstico Acústico (IA-A)",
         icon: "fa-microphone-lines",
         items: [
-            { id: "au_claxon", name: "Claxon", desc: "Intensidad sonora.", type: "IA-A", prompt: "Graba el sonido de la bocina." },
-            { id: "au_motor", name: "Ruido del Motor", desc: "Patrones anómalos.", type: "IA-A", prompt: "Graba el sonido del motor en ralentí." }
+            { id: "au_claxon", name: "Claxon", desc: "Intensidad sonora.", type: "USR" },
+            { id: "au_motor", name: "Ruido del Motor", desc: "Patrones anómalos.", type: "USR" }
         ]
     },
     {
