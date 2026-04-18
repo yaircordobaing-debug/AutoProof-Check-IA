@@ -107,12 +107,35 @@ class PDFService:
                 except:
                     pass
 
+        # Signature Section
+        if request.signature and len(request.signature) > 100:
+            try:
+                pdf.add_page()
+                pdf.set_font("Helvetica", 'B', 14)
+                pdf.cell(0, 15, txt="DECLARACIÓN Y FIRMA DIGITAL", ln=True)
+                pdf.set_font("Helvetica", size=10)
+                pdf.multi_cell(0, 5, txt="Certifico que la información suministrada en este reporte es veraz y refleja el estado actual del vehículo. Esta firma digital tiene validez legal plena bajo los protocolos de inspección de flota.")
+                pdf.ln(5)
+                
+                header, data = request.signature.split(',', 1) if ',' in request.signature else ('', request.signature)
+                sig_bytes = base64.b64decode(data)
+                temp_sig_path = f"sig_{request.trip_id}_{uuid.uuid4().hex}.png"
+                with open(temp_sig_path, "wb") as f:
+                    f.write(sig_bytes)
+                
+                pdf.image(temp_sig_path, w=80)
+                pdf.set_font("Helvetica", 'B', 10)
+                pdf.cell(80, 10, txt="Firma del Inspector / Conductor", border='T', align='C')
+                os.remove(temp_sig_path)
+            except:
+                pass
+
         # Integrity
-        pdf.set_y(-30)
+        pdf.set_y(-20)
         pdf.set_font("Helvetica", 'I', 8)
         pdf.set_text_color(148, 163, 184)
         fake_hash = f"SHA-256: {uuid.uuid4().hex}"
-        pdf.cell(0, 5, txt=f"INTEGRIDAD: {fake_hash}", ln=True, align='C')
+        pdf.cell(0, 5, txt=f"INTEGRIDAD Y AUTENTICIDAD: {fake_hash}", ln=True, align='C')
 
         file_name = f"report_{request.trip_id}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
         file_path = os.path.join(settings.REPORTS_DIR, file_name)

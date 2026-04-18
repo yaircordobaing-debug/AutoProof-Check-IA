@@ -19,3 +19,4 @@ class ReportRequest(BaseModel):
     score: int
     status: str
     email: str
+    signature: Optional[str] = ""

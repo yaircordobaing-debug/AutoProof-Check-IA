@@ -2,9 +2,10 @@ import { $ } from '../utils/dom.js';
 import { inspectionData } from '../data/inspectionItems.js';
 import { generateReportAPI } from './api.js';
 
-export function evaluarReporte(results, currentUser, activeTrip, pendingTrip) {
+export function evaluarReporte(results, currentUser, activeTrip, pendingTrip, force = false) {
     let total = 0, completados = 0;
     let fallos = [];
+    let faltantes = [];
 
     inspectionData.forEach(cat => {
         cat.items.forEach(i => {
@@ -12,16 +13,24 @@ export function evaluarReporte(results, currentUser, activeTrip, pendingTrip) {
             if (results[i.id]) {
                 completados++;
                 if (results[i.id].status === 'No Cumple') fallos.push(i.name);
+            } else {
+                faltantes.push(i.id);
             }
         });
     });
 
-    if (completados < total) {
-        alert(`Debes completar la inspección. Te faltan ${total - completados} puntos.`);
-        return null;
+    if (completados < total && !force) {
+        return { incomplete: true, missingCount: total - completados };
     }
 
-    let score = 100 - (fallos.length * (100/total));
+    // Si es forzado, rellenamos los faltantes
+    if (force) {
+        faltantes.forEach(id => {
+            results[id] = { status: 'No Realizado', method: 'NOT_DONE', completed: true, observation: 'Omitido por el inspector bajo su responsabilidad.' };
+        });
+    }
+
+    let score = (completados - fallos.length) / total * 100;
     score = Math.max(0, Math.round(score));
     let hasManual = Object.values(results).some(r => r.method === 'LEG');
 

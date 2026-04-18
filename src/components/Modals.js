@@ -101,46 +101,110 @@ export function renderModals() {
         </div>
 
         <!-- ================= MODAL LEGAL (WAIVER) ================= -->
-        <div id="legalModal" class="fixed inset-0 bg-gray-900/95 z-[60] hidden flex-col justify-center items-center p-4 backdrop-blur-md">
-            <div class="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl flex flex-col">
-                <div class="p-6 border-b border-gray-100 bg-amber-50 text-amber-800">
-                    <h3 class="font-bold text-lg">Exención Legal</h3>
+        <div id="legalModal" class="fixed inset-0 bg-black/70 z-[60] hidden flex-col justify-center items-center p-4 backdrop-blur-md">
+            <div class="bg-gray-100 w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl flex flex-col">
+                <!-- HEADER -->
+                <div class="bg-[#d6d1c3] px-6 py-4 text-left">
+                    <h2 class="font-bold text-orange-800 text-lg">Exención Legal</h2>
                 </div>
-                <div class="p-6 overflow-y-auto">
-                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-6 text-[10px] text-amber-800 italic">
-                        "Declaro bajo mi responsabilidad que este componente se encuentra en buen estado. En caso de falla posterior, la responsabilidad recae exclusivamente en el conductor."
+
+                <!-- BODY -->
+                <div class="p-6 space-y-5 flex-1">
+                    <!-- TEXTO LEGAL -->
+                    <div class="bg-amber-50 border border-amber-300 text-amber-800 text-xs italic p-4 rounded-xl leading-relaxed">
+                        "Declaro bajo mi responsabilidad que este componente se encuentra en buen estado. 
+                        En caso de falla posterior, la responsabilidad recae exclusivamente en el conductor."
                     </div>
-                    <label id="legalCheckboxLabel" class="flex items-center gap-4 cursor-pointer mb-6 p-5 border-2 border-gray-100 rounded-[2rem] transition-all duration-300 bg-gray-50">
-                        <input type="checkbox" id="legalCheckbox" 
-                            onchange="const l=document.getElementById('legalCheckboxLabel'); l.classList.toggle('bg-amber-100'); l.classList.toggle('border-amber-500'); l.classList.toggle('scale-[1.02]');"
-                            class="w-10 h-10 accent-amber-600 cursor-pointer">
-                        <span class="text-sm font-black text-gray-800 leading-tight">Acepto los términos de responsabilidad operativa.</span>
-                    </label>
-                    <textarea id="legalComment" rows="2" class="w-full p-3 bg-gray-50 border rounded-xl text-sm" placeholder="Comentario opcional..."></textarea>
+
+                    <!-- CHECKBOX CUSTOM -->
+                    <div class="flex items-center gap-3 cursor-pointer group" onclick="
+                        const cb = document.getElementById('legalCheckbox');
+                        const box = document.getElementById('customCheckContainer');
+                        const icon = document.getElementById('checkIconLegal');
+                        const btn = document.getElementById('legalConfirmBtn');
+                        cb.checked = !cb.checked;
+                        if(cb.checked){
+                            box.classList.add('bg-green-600', 'border-green-600');
+                            icon.classList.remove('hidden');
+                            btn.disabled = false;
+                            btn.classList.replace('bg-orange-400', 'bg-orange-500');
+                        } else {
+                            box.classList.remove('bg-green-600', 'border-green-600');
+                            icon.classList.add('hidden');
+                            btn.disabled = true;
+                            btn.classList.replace('bg-orange-500', 'bg-orange-400');
+                        }
+                    ">
+                        <input type="checkbox" id="legalCheckbox" class="hidden">
+                        <div id="customCheckContainer" class="w-8 h-8 flex-shrink-0 rounded-lg border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-300 shadow-sm">
+                            <i id="checkIconLegal" class="fa-solid fa-check text-white text-sm hidden"></i>
+                        </div>
+                        <span class="text-gray-700 text-sm font-medium leading-snug">
+                            Acepto los términos de responsabilidad operativa.
+                        </span>
+                    </div>
+
+                    <!-- TEXTAREA -->
+                    <textarea id="legalComment" rows="3" placeholder="Comentario opcional..." 
+                        class="w-full p-4 rounded-xl border border-gray-300 bg-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-700"></textarea>
                 </div>
-                <div class="p-6 border-t bg-gray-50 flex gap-3">
-                    <button onclick="closeLegalModal()" class="flex-1 py-4 text-gray-500 font-bold">Cancelar</button>
-                    <button onclick="confirmLegalValidation()" class="flex-1 py-4 bg-amber-500 text-white rounded-xl font-bold shadow-lg shadow-amber-200">Confirmar</button>
+
+                <!-- FOOTER -->
+                <div class="flex items-center justify-between px-6 py-5 border-t bg-gray-100">
+                    <button onclick="closeLegalModal()" class="text-gray-500 font-semibold hover:text-gray-700 transition-colors">
+                        Cancelar
+                    </button>
+                    <button id="legalConfirmBtn" onclick="confirmLegalValidation()" disabled
+                        class="bg-orange-400 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-orange-200 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-orange-500">
+                        Confirmar
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- ================= MODAL FINAL (EMAIL + FIRMA) ================= -->
-        <div id="finalModal" class="fixed inset-0 bg-gray-900/95 z-[70] hidden flex-col justify-center items-center p-4 backdrop-blur-md">
+        <div id="finalModal" class="fixed inset-0 bg-black/70 z-[70] hidden flex-col justify-center items-center p-4 backdrop-blur-md">
             <div class="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl flex flex-col">
                 <div class="p-6 bg-jungle text-white font-bold text-center">FINALIZAR INSPECCIÓN</div>
                 <div class="p-6">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Enviar Reporte a:</label>
-                    <input type="email" id="driverEmail" class="w-full p-4 bg-gray-50 border rounded-2xl mb-4 mt-1" placeholder="correo@empresa.com">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Enviar Reporte a:</label>
+                        <button onclick="document.getElementById('driverEmail').value='yair.cordoba.ing@gmail.com'" class="text-[10px] font-bold text-jungle uppercase hover:underline">Usar Correo Empresa</button>
+                    </div>
+                    <input type="email" id="driverEmail" class="w-full p-4 bg-gray-50 border rounded-2xl mb-4" placeholder="correo@empresa.com">
                     
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Firma Digital Única</label>
                     <div class="relative mb-6 mt-1">
-                        <canvas id="signature-pad" width="300" height="150" class="w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50"></canvas>
-                        <button onclick="clearSignature()" class="absolute top-2 right-2 p-2 text-gray-400"><i class="fa-solid fa-eraser"></i></button>
+                        <canvas id="signature-pad" width="350" height="180" class="w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 touch-none cursor-crosshair"></canvas>
+                        <button onclick="clearSignature()" class="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500"><i class="fa-solid fa-eraser"></i></button>
                     </div>
 
-                    <button onclick="submitFinalReport()" class="w-full bg-jungle text-white py-4 rounded-2xl font-bold shadow-lg">Generar Reporte PDF</button>
+                    <button onclick="submitFinalReport()" class="w-full bg-jungle text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Generar Reporte PDF</button>
                     <button onclick="document.getElementById('finalModal').classList.add('hidden')" class="w-full mt-3 text-gray-400 text-xs font-bold uppercase">Volver</button>
+                </div>
+            </div>
+        </div>
+        <!-- ================= MODAL INCOMPLETO (WARNING) ================= -->
+        <div id="incompleteModal" class="fixed inset-0 bg-black/70 z-[80] hidden flex-col justify-center items-center p-4 backdrop-blur-md">
+            <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl flex flex-col border-4 border-orange-500">
+                <div class="bg-orange-500 p-6 text-white text-center">
+                    <i class="fa-solid fa-triangle-exclamation text-4xl mb-2"></i>
+                    <h3 class="font-bold text-xl">Inspección Incompleta</h3>
+                </div>
+                <div class="p-6 text-center">
+                    <p id="incompleteMessage" class="text-gray-700 font-medium mb-4"></p>
+                    <div class="bg-red-50 border border-red-200 p-4 rounded-xl text-xs text-red-800 italic mb-4">
+                        "Entiendo que al finalizar sin completar todos los puntos, asumo la responsabilidad total sobre el estado de los componentes no verificados."
+                    </div>
+                    
+                    <textarea id="forceFinishComment" rows="2" class="w-full p-3 bg-gray-50 border rounded-xl text-sm mb-4" placeholder="¿Por qué finalizas sin completar?"></textarea>
+                    
+                    <button onclick="forceFinishInspection()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg mb-3">
+                        Finalizar bajo mi responsabilidad
+                    </button>
+                    <button onclick="document.getElementById('incompleteModal').classList.add('hidden')" class="w-full text-gray-500 font-bold text-sm uppercase">
+                        Volver a la inspección
+                    </button>
                 </div>
             </div>
         </div>

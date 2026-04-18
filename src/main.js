@@ -4,7 +4,7 @@ import { $, navigate as domNavigate, showNotification } from './utils/dom.js';
 // Import Modular Services
 import { handleLogin, handleLogout } from './services/auth.js';
 import { renderChecklist } from './services/inspection.js';
-import { initTripSetup, confirmTripSetup, submitTripReview } from './services/trip.js';
+import { initTripSetup, confirmTripSetup, submitTripReview as runSubmitTripReview } from './services/trip.js';
 import { startOBDScan as runOBDScan } from './services/obd.js';
 import { openModal as runOpenModal, startAnalysis as runStartAnalysis } from './services/modal.js';
 import { evaluarReporte as runEvaluarReporte, submitFinalReport } from './services/reportGenerator.js';
@@ -91,9 +91,8 @@ const showResultInModal = (result) => {
     
     // Update observation textarea with existing data
     if ($('#itemObservation') && result.observation) {
-        // If it was a manual note, show it. If it was AI, keep it in the result block.
         const noteMatch = result.observation.split(' | Nota: ');
-        if (noteMatch.length > 1) $('#itemObservation').value = noteMatch[1];
+        $('#itemObservation').value = noteMatch.length > 1 ? noteMatch[1] : result.observation;
     }
 
     if ($('#btnSaveResult')) $('#btnSaveResult').classList.remove('hidden');
@@ -120,6 +119,29 @@ window.appActions = {
     confirmTripSetup: () => { pendingTrip = confirmTripSetup(navigate); },
     startOBDScan: () => runOBDScan(),
     
+    // Trip Lifecycle Actions
+    setRating: (rating) => {
+        currentRating = rating;
+        const stars = $('#starRating').querySelectorAll('i');
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.remove('text-gray-200');
+                star.classList.add('text-yellow-400');
+            } else {
+                star.classList.remove('text-yellow-400');
+                star.classList.add('text-gray-200');
+            }
+        });
+    },
+
+    submitTripReview: () => {
+        const success = runSubmitTripReview(currentRating, navigate);
+        if (success) {
+            activeTrip = null; // Liberamos el vehículo activo
+            currentRating = 0; // Reiniciamos estrellas para el próximo viaje
+        }
+    },
+
     // Modal Actions
     openModal: (itemId) => { currentItemId = runOpenModal(itemId, inspectionResults, showResultInModal, resetModalState); },
     openCheckModal: (itemId) => {
@@ -216,7 +238,7 @@ window.appActions = {
             status: status, 
             method: 'USR', 
             completed: true, 
-            observation: userObs || 'Validado manualmente.' 
+            observation: userObs // Guardamos solo lo que el usuario escribió
         };
         renderChecklist(inspectionResults);
         window.appActions.closeModal();
@@ -254,31 +276,143 @@ window.appActions = {
 
     // Report Actions
     evaluarReporte: () => {
-        currentFinalReport = runEvaluarReporte(inspectionResults, currentUser, activeTrip, pendingTrip);
+        const res = runEvaluarReporte(inspectionResults, currentUser, activeTrip, pendingTrip);
+        if (res && res.incomplete) {
+            $('#incompleteMessage').innerText = `Debes completar la inspección. Te faltan ${res.missingCount} puntos.`;
+            $('#incompleteModal').classList.remove('hidden');
+            $('#incompleteModal').classList.add('flex');
+            return;
+        }
+
+        currentFinalReport = res;
         if (currentFinalReport) {
-            $('#reportScoreText').innerText = `${currentFinalReport.score}/100`;
-            $('#reportStatusBadge').innerText = currentFinalReport.status;
-            navigate('report');
+            // En lugar de navegar, pedimos la firma primero
+            window.appActions.finishReport();
+        }
+    },
+
+    forceFinishInspection: () => {
+        const comment = $('#forceFinishComment').value;
+        const res = runEvaluarReporte(inspectionResults, currentUser, activeTrip, pendingTrip, true);
+        if (res) {
+            res.observation = (res.observation || "") + ` | INSPECCIÓN FORZADA: El inspector acepta responsabilidad. Motivo: ${comment || 'No especificado'}`;
+            currentFinalReport = res;
+            
+            // Clickeamos el modal de advertencia y abrimos la FIRMA (OBLIGATORIO)
+            $('#incompleteModal').classList.add('hidden');
+            window.appActions.finishReport();
         }
     },
     
-    finishReport: () => { $('#finalModal').classList.remove('hidden'); $('#finalModal').classList.add('flex'); },
+    simulateSend: async (type) => {
+        if (type === 'Empresa') {
+            $('#driverEmail').value = 'yair.cordoba.ing@gmail.com';
+            showNotification("Enviando reporte a la empresa...");
+            await window.appActions.submitFinalReport();
+        } else {
+            $('#finalModal').classList.remove('hidden');
+            $('#finalModal').classList.add('flex');
+        }
+    },
     
+    initSignaturePad: () => {
+        const canvas = document.getElementById('signature-pad');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        // Ajuste de resolución para alta densidad (Retina)
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+        let drawing = false;
+        const getPos = (e) => {
+            const r = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX || e.touches[0].clientX) - r.left,
+                y: (e.clientY || e.touches[0].clientY) - r.top
+            };
+        };
+
+        const start = (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+        const end = () => { drawing = false; };
+        const draw = (e) => {
+            if (!drawing) return;
+            e.preventDefault();
+            const p = getPos(e);
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#1a4332';
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+        };
+
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', end);
+        canvas.addEventListener('touchstart', start, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', end);
+    },
+
+    finishReport: () => { 
+        $('#finalModal').classList.remove('hidden'); 
+        $('#finalModal').classList.add('flex');
+        setTimeout(() => window.appActions.initSignaturePad(), 100);
+    },
+    
+    clearSignature: () => {
+        const canvas = document.getElementById('signature-pad');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    },
+
     submitFinalReport: async () => {
         const email = $('#driverEmail').value;
+        
+        // Capturar Firma (Base64) del canvas
+        const canvas = document.getElementById('signature-pad');
+        if (canvas) {
+            currentFinalReport.signature = canvas.toDataURL();
+        }
+
+        // Si es la primera firma (viniendo del checklist), solo guardamos y mostramos el reporte
+        if (currentView === 'checklist') {
+            $('#reportScoreText').innerText = `${currentFinalReport.score}/100`;
+            $('#reportStatusBadge').innerText = currentFinalReport.status;
+            $('#finalModal').classList.add('hidden');
+            navigate('report');
+            return;
+        }
+
+        if (!email) {
+            showNotification("Por favor ingresa un correo");
+            return;
+        }
+
         const res = await submitFinalReport(currentFinalReport, email, reportsHistory);
         if (res) {
             showNotification("Reporte enviado con éxito");
             window.open(res.url, '_blank');
-            inspectionResults = {};
-            renderChecklist(inspectionResults);
-            $('#finalModal').classList.add('hidden');
-            navigate('dashboard');
+            
+            // Si es iniciar viaje (desde la pantalla de reporte)
+            if (currentView === 'report') {
+                activeTrip = { ...pendingTrip, status: 'Active', startTime: new Date().toLocaleTimeString() };
+                pendingTrip = null;
+                inspectionResults = {};
+                renderChecklist(inspectionResults);
+                $('#finalModal').classList.add('hidden');
+                navigate('dashboard');
+            }
         }
     }
 };
 
 // Map original HTML onclicks to appActions
+window.simulateSend = window.appActions.simulateSend;
 window.login = window.appActions.login;
 window.logout = window.appActions.logout;
 window.navigate = window.appActions.navigate;
@@ -298,16 +432,24 @@ window.confirmLegalValidation = window.appActions.confirmLegalValidation;
 window.clearSignature = window.appActions.clearSignature;
 window.retryAnalysis = window.appActions.retryAnalysis;
 window.saveResultWithStatus = window.appActions.saveResultWithStatus;
+window.forceFinishInspection = window.appActions.forceFinishInspection;
+window.setRating = window.appActions.setRating;
+window.submitTripReview = window.appActions.submitTripReview;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    renderModals();
-    renderBottomNav();
-    
+    // Inject Modular UI Components
+    const appComponents = $('#app-components');
+    if (appComponents) {
+        appComponents.innerHTML = renderModals() + renderBottomNav();
+    }
+
     // Auto-transition from Splash to Login after 2.5 seconds
     setTimeout(() => {
         navigate('login');
     }, 2500);
+
+    renderChecklist(inspectionResults);
 });
 
 // Event Listeners for file inputs
