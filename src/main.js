@@ -1,4 +1,3 @@
-import './styles/main.css';
 import { inspectionData } from './data/inspectionItems.js';
 import { $, navigate as domNavigate, showNotification } from './utils/dom.js';
 
