@@ -49,6 +49,7 @@ Diseñado para la escalabilidad y modularización, el proyecto divide la lógica
 1. **Clonar repositorio e inicializar entorno:**
    ```bash
    git clone https://github.com/tu-usuario/AutoProof-Check-IA.git
+   git clone https://github.com/yaircordobaing-debug/AutoProof-Check-IA-version-2.git
    cd AutoProof-Check-IA
    ```
 

@@ -1,4 +1,5 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+// URL del Backend en Render (Cámbiala cuando tengas la de Render)
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || ""; 
 
 export async function callGeminiAPI(base64Data, specificPrompt, currentItemId) {
     const base64Response = await fetch(base64Data);
