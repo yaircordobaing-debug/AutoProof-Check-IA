@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from backend.app.api.routes import analysis, reports
 from backend.app.config.settings import settings
 import os
@@ -21,22 +21,31 @@ app.add_middleware(
 app.include_router(analysis.router, prefix="/v1", tags=["IA Analysis"])
 app.include_router(reports.router, prefix="/v1", tags=["Reports"])
 
-# Forzar MIME types para JavaScript (Crítico para Cloud Run)
-import mimetypes
-mimetypes.add_type('application/javascript', '.js')
-mimetypes.add_type('text/css', '.css')
-
-# Servir la carpeta src explícitamente
-if os.path.exists("src"):
-    app.mount("/src", StaticFiles(directory="src"), name="src")
+# Servir archivos de la carpeta src con MIME type forzado (MANUAL)
+@app.get("/src/{path:path}")
+async def serve_src(path: str):
+    file_path = os.path.join("src", path)
+    if not os.path.exists(file_path):
+        return Response(status_code=404)
+    
+    # Determinar el MIME type manualmente
+    content_type = "application/javascript" if path.endswith(".js") else \
+                   "text/css" if path.endswith(".css") else \
+                   "image/png" if path.endswith(".png") else \
+                   "image/jpeg" if path.endswith(".jpg") or path.endswith(".jpeg") else \
+                   "application/octet-stream"
+    
+    with open(file_path, "rb") as f:
+        return Response(content=f.read(), media_type=content_type)
 
 # Servir el index.html en la raíz
 @app.get("/")
 async def read_index():
     return FileResponse("index.html")
 
-# Servir cualquier otro archivo en la raíz (como favicon o assets sueltos)
-app.mount("/", StaticFiles(directory="."), name="root")
+# Servir el resto de archivos (assets, favicon, etc.)
+if os.path.exists("assets"):
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 if __name__ == "__main__":
     import uvicorn
