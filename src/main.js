@@ -298,6 +298,17 @@ window.confirmLegalValidation = window.appActions.confirmLegalValidation;
 window.clearSignature = window.appActions.clearSignature;
 window.retryAnalysis = window.appActions.retryAnalysis;
 
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+    renderModals();
+    renderBottomNav();
+    
+    // Auto-transition from Splash to Login after 2.5 seconds
+    setTimeout(() => {
+        navigate('login');
+    }, 2500);
+});
+
 // Event Listeners for file inputs
 document.addEventListener('change', (e) => {
     if (['fileInput', 'cameraInput', 'galleryInput'].includes(e.target.id)) {
