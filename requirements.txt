@@ -5,3 +5,4 @@ python-multipart
 fpdf2
 google-generativeai
 python-dotenv
+supabase

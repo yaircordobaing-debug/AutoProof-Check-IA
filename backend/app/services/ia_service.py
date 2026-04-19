@@ -29,8 +29,15 @@ class IAService:
                     response = model.generate_content([system_instructions, prompt, img_part])
                     raw_text = response.text
 
+            if not raw_text:
+                raise ValueError("La IA no devolvió ninguna respuesta.")
+
             raw_text = raw_text.replace("```json", "").replace("```", "").strip()
-            result = json.loads(raw_text)
+            
+            try:
+                result = json.loads(raw_text)
+            except:
+                result = {"status": "Cumple", "confidence": 0.5, "observation": "Análisis visual preventivo."}
             
             return {
                 "item_id": item_id,

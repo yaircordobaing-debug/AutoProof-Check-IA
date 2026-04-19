@@ -1,12 +1,27 @@
 import { $, showNotification } from '../utils/dom.js';
 
-export function initTripSetup(currentUser, companyFleet, navigate) {
+import { supabase } from './supabase.js';
+
+export async function initTripSetup(currentUser, navigate) {
     const driverInput = $('#tripDriver');
     const carSelect = $('#tripCar');
 
-    if (currentUser) {
+    if (currentUser && currentUser.company_id) {
         driverInput.value = currentUser.name;
-        carSelect.innerHTML = companyFleet.map(car => `<option value="${car}">${car}</option>`).join('');
+        
+        // Traer carros de Supabase
+        const { data: vehicles, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('company_id', currentUser.company_id);
+
+        if (error || !vehicles) {
+            carSelect.innerHTML = `<option value="">No hay vehículos disponibles</option>`;
+        } else {
+            carSelect.innerHTML = vehicles.map(car => 
+                `<option value="${car.plate}">${car.plate} - ${car.brand} ${car.model}</option>`
+            ).join('');
+        }
     } else {
         driverInput.value = 'Usuario Invitado';
         carSelect.innerHTML = `<option value="Vehículo Personal">Mi Vehículo Personal</option>`;

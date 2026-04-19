@@ -112,10 +112,19 @@ window.onload = () => {
 
 // --- Expose Global Actions for index.html ---
 window.appActions = {
-    login: (isUser) => { currentUser = handleLogin(isUser, navigate); },
+    login: async (isUser) => { 
+        if (isUser) {
+            const email = $('#loginEmail').value;
+            const pass = $('#loginPass').value;
+            currentUser = await handleLogin(email, pass, navigate); 
+        } else {
+            currentUser = { name: 'Invitado', role: 'Modo Prueba', company_id: null };
+            navigate('dashboard');
+        }
+    },
     logout: () => { currentUser = handleLogout(navigate); activeTrip = null; },
     navigate: navigate,
-    initTripSetup: () => initTripSetup(currentUser, ["Mazda 3", "Toyota Hilux"], navigate),
+    initTripSetup: async () => { await initTripSetup(currentUser, navigate); },
     confirmTripSetup: () => { pendingTrip = confirmTripSetup(navigate); },
     startOBDScan: () => runOBDScan(),
     

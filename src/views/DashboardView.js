@@ -2,7 +2,7 @@ import { $ } from '../utils/dom.js';
 
 export function updateDashboard(currentUser, activeTrip, reportsHistory) {
     $('#dashName').innerText = currentUser ? `Hola, ${currentUser.name.split(' ')[0]}` : 'Bienvenido';
-    $('#dashRole').innerText = currentUser ? currentUser.role : 'Modo Invitado';
+    $('#dashRole').innerText = currentUser ? `${currentUser.role} @ ${currentUser.company_name || 'Personal'}` : 'Modo Invitado';
     
     const lastReportBox = $('#dashLastReport');
     if (reportsHistory.length > 0) {

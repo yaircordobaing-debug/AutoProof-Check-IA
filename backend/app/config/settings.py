@@ -9,6 +9,8 @@ class Settings:
     PROJECT_TITLE: str = "AutoProof Check IA - Enterprise Backend"
     REPORTS_DIR: str = "reports"
     PUBLIC_URL: str = os.getenv("PUBLIC_URL", "http://localhost:8080")
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "https://ofkanlgwobyjxsfmkybw.supabase.co")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     IS_AI_ACTIVE: bool = False
     MODEL = None
 

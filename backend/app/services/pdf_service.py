@@ -143,10 +143,16 @@ class PDFService:
             os.makedirs(settings.REPORTS_DIR)
         pdf.output(file_path)
 
+        # SUBIR A SUPABASE STORAGE
+        from backend.app.services.supabase_service import SupabaseBackendService
+        supabase_url = SupabaseBackendService.upload_report(file_path, file_name)
+        
+        final_url = supabase_url if supabase_url else f"{settings.PUBLIC_URL}/reports/{file_name}"
+
         return {
             "report_id": request.trip_id,
             "status": "Finalizado",
             "hash": fake_hash,
-            "url": f"{settings.PUBLIC_URL}/reports/{file_name}",
+            "url": final_url,
             "path": file_path
         }
